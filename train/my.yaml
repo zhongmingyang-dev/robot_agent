@@ -1,0 +1,12 @@
+
+path: .
+train: images
+val: images
+test: # test images (optional)
+
+# Classes
+names:
+  0: bottle
+  1: spitball
+  2: red block
+  3: yellow block

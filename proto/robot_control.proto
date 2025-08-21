@@ -1,0 +1,184 @@
+syntax = "proto3";
+
+package robot_control.v1;
+
+option go_package = "github.com/SSRVodka/robot_control/v1";
+option java_multiple_files = true;
+option java_package = "top.voxelsky.robot_control.v1";
+
+import "google/protobuf/timestamp.proto";
+
+// 空请求/响应
+message Empty {}
+
+// --------------------- 移动控制接口 ----------------------
+
+// 3D 坐标位置 (单位：米)
+message Position {
+  double x = 1;  // X轴坐标 (前进方向)
+  double y = 2;  // Y轴坐标 (横向移动)
+  double z = 3;  // Z轴坐标 (高度)
+}
+
+// 机器人朝向 (单位：弧度)
+message Orientation {
+  double yaw = 1;    // 偏航角 (水平旋转)
+  double pitch = 2;  // 俯仰角 (垂直旋转)
+  double roll = 3;   // 翻滚角 (侧倾)
+}
+
+// 目标位置定义
+message TargetPosition {
+  Position position = 1;
+  Orientation orientation = 2;
+  
+  // 移动参数
+  double max_speed = 3;       // 最大速度 (m/s)
+  double tolerance = 4;       // 位置容差 (米)
+  double orientation_tolerance = 5;  // 方向容差 (弧度)
+}
+
+// 机器人当前状态
+message RobotState {
+  enum StateEnum {
+    IDLE = 0;
+    MOVING = 1;
+    EMERGE_STOP = 2;
+  }
+
+  Position position = 1;
+  Orientation orientation = 2;
+  double battery_level = 3;         // 电量百分比 (0.0-1.0)
+  repeated string warnings = 4;     // 警告信息
+  StateEnum state_code = 5;         // 状态标志
+  bool is_using_gripper = 6;        // 夹爪是否正在使用
+  bool is_moving_arm = 7;           // 移动机械臂标志
+  google.protobuf.Timestamp timestamp = 8;  // 状态时间戳
+}
+
+message ControlResponse {
+  enum ResultCode {
+    SUCCESS = 0;
+    PARTIAL_SUCCESS = 1;
+    OBSTACLE_DETECTED = 2;
+    LOW_BATTERY = 3;
+    OUT_OF_RANGE = 4;
+    TIMEOUT = 5;
+    EMERGENCY_STOP = 6;
+    INVALID_TARGET = 7;
+  }
+  ResultCode code = 1;
+  string message = 2;          // 人类可读的结果描述
+  RobotState current_state = 3; // 当前状态
+  repeated string suggested_actions = 4; // 建议修复步骤
+}
+
+// 机器人微调运动方向
+message RobotDirection {
+  enum Direction {
+    FORWARD = 0;
+    BACKWARD = 1;
+    FORWARD_LEFT = 2;
+    FORWARD_RIGHT = 3;
+    BACKWARD_LEFT = 4;
+    BACKWARD_RIGHT = 5;
+  }
+  Direction direction = 1;
+  uint32 distance = 2;
+}
+
+// 夹起/放下命令
+message PickOrPlaceCmd {
+  string cmd = 1;
+  uint32 x_min = 2;
+  uint32 y_min = 3;
+  uint32 x_max = 4;
+  uint32 y_max = 5;
+}
+
+service RobotControlService {
+  // 简单移动接口 (请求-响应模式)
+  rpc MoveToPosition(TargetPosition) returns (ControlResponse);
+
+  // 简单小位移移动接口
+  rpc StreamMove(RobotDirection) returns (stream RobotState);
+
+  // 带实时反馈的移动 (服务器流模式)
+  rpc StreamMoveToPosition(TargetPosition) returns (stream RobotState);
+
+  // 获取当前状态
+  rpc GetCurrentPosition(Empty) returns (ControlResponse);
+
+  // 紧急停止
+  rpc EmergencyStop(Empty) returns (ControlResponse);
+
+  //夹起物体
+  rpc StreamPickUpObject(PickOrPlaceCmd) returns (stream RobotState);
+
+  //放下物体
+  rpc StreamPlaceObject(PickOrPlaceCmd) returns (stream RobotState);
+}
+
+// -------------------- 机器人相机信息服务 --------------------
+
+message CameraConfig {
+  enum ImageFormat {
+    UNKNOWN_FORMAT = 0;
+    JPEG = 1;
+    PNG = 2;
+    RAW = 3;        // 原始传感器数据
+    H264_FRAME = 4; // 视频帧
+  }
+
+  enum Resolution {
+    RES_UNKNOWN = 0;
+    RES_640x480 = 1;
+    RES_1280x720 = 2;
+    RES_1920x1080 = 3;
+    RES_3840x2160 = 4;
+  }
+
+  ImageFormat format = 1;         // 图像格式
+  Resolution resolution = 2;      // 分辨率
+  double frame_rate = 3;          // 帧率 (fps)
+  bool auto_exposure = 4;         // 自动曝光
+  double exposure_time = 5;       // 曝光时间 (ms)
+  double gain = 6;                // 增益
+  bool color = 7;                 // 是否彩色图像
+  double quality = 8;             // 压缩质量 (0.0-1.0)
+  bool enable_depth = 9;          // 是否包含深度数据
+  bool enable_pointcloud = 10;    // 是否包含点云数据
+}
+
+// 图像元数据
+message ImageMetadata {
+  google.protobuf.Timestamp capture_time = 1;  // 图像采集时间
+  uint32 width = 2;                            // 图像宽度
+  uint32 height = 3;                           // 图像高度
+  uint32 channels = 4;                         // 通道数
+  Position camera_position = 5;                // 相机位置 (来自之前定义)
+  Orientation camera_orientation = 6;          // 相机方向 (来自之前定义)
+  map<string, string> custom_metadata = 7;     // 自定义元数据
+}
+// 深度图像数据
+message DepthImage {
+  repeated float depth_data = 1;  // 深度数据 (行优先)
+  float min_depth = 2;            // 最小深度值(m)
+  float max_depth = 3;            // 最大深度值(m)
+}
+// 图像响应
+message ImageResponse {
+  ImageMetadata metadata = 1;  // 图像元数据
+  CameraConfig config = 2;     // 当前相机配置
+  bytes full_image = 3;      // 完整图像数据
+  DepthImage depth_image = 4;
+}
+
+// 相机服务
+service CameraService {
+  // 获取单张图像
+  rpc GetImage(Empty) returns (ImageResponse);
+
+  // 获取相机配置
+  rpc GetCameraConfig(Empty) returns (CameraConfig);
+}
