@@ -29,7 +29,7 @@ from PIL import Image
 
 # It won't be written into requirements.txt
 # because it should be ported to OpenHarmony platform
-from ultralytics import YOLO
+# from ultralytics import YOLO
 
 from models.paths import MODEL_PATH
 
@@ -471,20 +471,20 @@ async def get_xyxy_from_image() -> Tuple[int, int, int, int]:
     #     logger.error(f"details: {e}")
     #     raise RuntimeError(msg)
 
-    os.makedirs("tmp", exist_ok=True)
-    resp = await get_robot_camera_image("tmp")
+    # os.makedirs("tmp", exist_ok=True)
+    # resp = await get_robot_camera_image("tmp")
 
-    model = YOLO(MODEL_PATH)
-    results = model.predict(resp["image_url"]["file"])
-    try:
-        boxes = results[0].boxes.xyxy
-        for box in boxes:
-            x_min, y_min, x_max, y_max = box.tolist()
-            print(f"左上角: ({x_min}, {y_min}), 右下角: ({x_max}, {y_max})")
-            return x_min, y_min, x_max, y_max
-    except Exception as e:
-        logger.warning(f"YOLO failed to recognize xyxy in image: {e}")
-        return 0, 0, 0, 0
+    # model = YOLO(MODEL_PATH)
+    # results = model.predict(resp["image_url"]["file"])
+    # try:
+    #     boxes = results[0].boxes.xyxy
+    #     for box in boxes:
+    #         x_min, y_min, x_max, y_max = box.tolist()
+    #         print(f"左上角: ({x_min}, {y_min}), 右下角: ({x_max}, {y_max})")
+    #         return x_min, y_min, x_max, y_max
+    # except Exception as e:
+    #     logger.warning(f"YOLO failed to recognize xyxy in image: {e}")
+    return 0, 0, 0, 0
 
 
 # ────────────────────────────────────────────────────────────────────────────
