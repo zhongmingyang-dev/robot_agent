@@ -147,8 +147,6 @@ class RobotAgent(Agent):
                             pkt = self._message_queue.get(block=True, timeout=3.0)
                             request_id = pkt.req_id
                             self.logger.info(f"[{request_id}] Processing message")
-                            from servers.external_control import send_to_user
-                            send_to_user(pkt.msg)
                             await self._process_message(pkt)
                         except queue.Empty:
                             continue
@@ -185,6 +183,8 @@ class RobotAgent(Agent):
                     content: str = content_msg_obj.pretty_repr()
                     self.logger.debug(f"[{request_id}] Agent response chunk:\n{content}")
                     resp = AgentRecvQueueMessage(AgentErrorCode.SUCCESS, content, request_id)
+                    from servers.external_control import send_to_user
+                    send_to_user(resp.msg)
                     # 将响应放入同步队列
                     response_queue.put(resp)
 
