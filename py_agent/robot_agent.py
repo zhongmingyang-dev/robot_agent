@@ -24,6 +24,8 @@ from enum import Enum
 
 from common import prompts, config
 
+import asyncio
+import websockets
 
 class AgentErrorCode(Enum):
     SUCCESS = 0
@@ -60,6 +62,8 @@ class RobotAgent(Agent):
 
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
+        
+        self.connected_clients = set()
 
         ch = logging.StreamHandler()
         ch.setLevel(logging.DEBUG)
@@ -87,6 +91,55 @@ class RobotAgent(Agent):
 
         self.logger.info("Agent service initialized")
 
+    async def register(self,websocket):
+        self.connected_clients.add(websocket)
+        print(f"✅ 客户端接入: {len(self.connected_clients)} 个在线")
+        try:
+            await websocket.wait_closed()
+        finally:
+            self.connected_clients.remove(websocket)
+            print(f"❌ 客户端断开: {len(self.connected_clients)} 个在线")
+
+    async def handle_client(self, websocket):
+        # 注册客户端
+        await self.register(websocket)
+
+        # 这里处理客户端主动发来的消息
+        async for message in websocket:
+            print(f"📩 收到客户端消息: {message}")
+
+    async def send_to_user(self, msg: str, websocket=None):
+        """
+        调用 Agent 并把结果推送给指定 websocket，
+        如果 websocket=None，则广播给所有客户端
+        """
+        print(f"websocket message: {msg}")
+        
+        if websocket:
+            targets = [websocket]
+        else:
+            targets = list(self.connected_clients)
+
+        if not targets:
+            print("⚠️ 没有客户端在线，消息不会被发送")
+            return
+
+        for ws in targets:
+            try:
+                await ws.send(msg)
+            except Exception as e:
+                print(f"❌ 向客户端发送失败: {e}")
+
+    async def websocket_service(self):
+        async with websockets.serve(self.handle_client, "0.0.0.0", 9000):
+            print("🚀 WebSocket 服务已启动: ws://0.0.0.0:9000")
+            await asyncio.Future()  # 永不退出
+
+    def start_websocket_thread(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(self.websocket_service())
+    
     def start(self):
         """启动服务线程"""
         if self._is_running:
@@ -321,6 +374,8 @@ class RobotAgent(Agent):
 if __name__ == '__main__':
     agent = RobotAgent(config.llm, config.server_params, prompts.SYSTEM_PROMPT)
 
+    ws_thread = threading.Thread(target=agent.start_websocket_thread, daemon=True)
+    ws_thread.start()
 
     def handle_signal(signum, _frame):
         print(f"\nReceived signal {signum}, stopping agent...")
