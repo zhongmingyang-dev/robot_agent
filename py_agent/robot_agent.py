@@ -184,7 +184,7 @@ class RobotAgent(Agent):
                     self.logger.debug(f"[{request_id}] Agent response chunk:\n{content}")
                     resp = AgentRecvQueueMessage(AgentErrorCode.SUCCESS, content, request_id)
                     from servers.external_control import send_to_user
-                    send_to_user(content)
+                    await send_to_user(content)
                     # 将响应放入同步队列
                     response_queue.put(resp)
 
