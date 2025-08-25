@@ -75,7 +75,8 @@ async def send_to_user(msg: str, websocket=None):
     调用 Agent 并把结果推送给指定 websocket，
     如果 websocket=None，则广播给所有客户端
     """
-
+    print(f"websocket message: {msg}")
+    
     if websocket:
         targets = [websocket]
     else:
