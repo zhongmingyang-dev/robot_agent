@@ -53,7 +53,7 @@ def handle_notification():
 
 connected_clients = set()
 
-async def register(websocket,path):
+async def register(websocket):
     connected_clients.add(websocket)
     print(f"✅ 客户端接入: {len(connected_clients)} 个在线")
     try:
@@ -62,15 +62,15 @@ async def register(websocket,path):
         connected_clients.remove(websocket)
         print(f"❌ 客户端断开: {len(connected_clients)} 个在线")
 
-async def handle_client(self,websocket,path):
+async def handle_client(websocket):
     # 注册客户端
-    await self.register(websocket,path)
+    await register(websocket)
 
     # 这里处理客户端主动发来的消息
     async for message in websocket:
         print(f"📩 收到客户端消息: {message}")
 
-async def send_to_user(msg: str, websocket=None, path=None):
+async def send_to_user(msg: str, websocket=None):
     """
     调用 Agent 并把结果推送给指定 websocket，
     如果 websocket=None，则广播给所有客户端
