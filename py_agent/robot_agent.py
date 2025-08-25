@@ -374,8 +374,6 @@ class RobotAgent(Agent):
 if __name__ == '__main__':
     agent = RobotAgent(config.llm, config.server_params, prompts.SYSTEM_PROMPT)
 
-    ws_thread = threading.Thread(target=agent.start_websocket_thread, daemon=True)
-    ws_thread.start()
 
     def handle_signal(signum, _frame):
         print(f"\nReceived signal {signum}, stopping agent...")

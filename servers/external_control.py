@@ -10,6 +10,8 @@ app = Flask(__name__)
 
 
 _agent = RobotAgent(config.llm, config.server_params, prompts.SYSTEM_PROMPT)
+ws_thread = threading.Thread(target=_agent.start_websocket_thread, daemon=True)
+ws_thread.start()
 _agent.start()
 
 
