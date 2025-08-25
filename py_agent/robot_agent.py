@@ -25,7 +25,6 @@ from enum import Enum
 from common import prompts, config
 
 
-
 class AgentErrorCode(Enum):
     SUCCESS = 0
     TIMEOUT = 1
@@ -339,6 +338,8 @@ if __name__ == '__main__':
                 print(f"[Agent Error] {_msg}")
             else:
                 print(_msg)
+            from servers.external_control import send_to_user
+            send_to_user(_msg)
     except KeyboardInterrupt:
         # 处理再次按Ctrl+C的情况
         handle_signal(signal.SIGINT, None)

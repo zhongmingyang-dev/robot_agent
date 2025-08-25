@@ -70,7 +70,7 @@ async def handle_client(self,websocket):
     async for message in websocket:
         print(f"📩 收到客户端消息: {message}")
 
-async def send_to_agent(msg: str, websocket=None):
+async def send_to_user(msg: str, websocket=None):
     """
     调用 Agent 并把结果推送给指定 websocket，
     如果 websocket=None，则广播给所有客户端
