@@ -40,8 +40,10 @@ def handle_notification():
         # 2. 发送给其他服务
         # 3. 触发通知等
 
-        _agent.submit_message(prompts.MSG + data['original_sms'])
+        _, _msg = _agent.submit_message(prompts.MSG + data['original_sms'])
 
+        from servers.external_control import send_to_user
+        send_to_user(_msg)
         return jsonify({
             "status": "success",
             "message": "Notification processed.",
